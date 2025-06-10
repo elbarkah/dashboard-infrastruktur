@@ -40,8 +40,9 @@ def dashboard_jalan():
     st.title("🛣️ Dashboard Kondisi Jalan Desa - Provinsi Jawa Barat")
     st.markdown("Analisis visual interaktif kondisi jalan desa.")
 
-    st.markdown("### 🔍 Filter Data")
-    col1, col2, col3, col4 = st.columns(4)
+        st.markdown("### 🔍 Filter Data")
+    col1, col2, col3, col4, col5 = st.columns(5)
+
     with col1:
         selected_kab = st.selectbox("📍 Kabupaten", ["Semua"] + sorted(df['KABUPATEN'].dropna().unique()))
     with col2:
@@ -52,6 +53,9 @@ def dashboard_jalan():
         selected_desa = st.selectbox("🏘️ Desa", ["Semua"] + sorted(desa_options))
     with col4:
         selected_perkerasan = st.selectbox("🚧 Jenis Perkerasan", ["Semua"] + sorted(df['JENIS PERKERASAN'].dropna().unique()))
+    with col5:
+        kondisi_opsi = ["Semua", "Baik", "Rusak Ringan", "Rusak Sedang", "Rusak Berat"]
+        selected_kondisi = st.selectbox("🧱 Kondisi Jalan", kondisi_opsi)
 
     def apply_filter(df):
         if selected_kab != "Semua":
@@ -62,6 +66,17 @@ def dashboard_jalan():
             df = df[df["DESA"] == selected_desa]
         if selected_perkerasan != "Semua":
             df = df[df["JENIS PERKERASAN"] == selected_perkerasan]
+        
+        # Filter berdasarkan kondisi jalan (jika dipilih)
+        if selected_kondisi == "Baik":
+            df = df[pd.to_numeric(df["BAIK (meter)"], errors="coerce").fillna(0) > 0]
+        elif selected_kondisi == "Rusak Ringan":
+            df = df[pd.to_numeric(df["RUSAK RINGAN (meter)"], errors="coerce").fillna(0) > 0]
+        elif selected_kondisi == "Rusak Sedang":
+            df = df[pd.to_numeric(df["RUSAK SEDANG (meter)"], errors="coerce").fillna(0) > 0]
+        elif selected_kondisi == "Rusak Berat":
+            df = df[pd.to_numeric(df["RUSAK BERAT (meter)"], errors="coerce").fillna(0) > 0]
+
         return df
 
     if st.button("Tampilkan Data"):
