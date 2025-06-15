@@ -30,7 +30,7 @@ st.markdown("""
     margin-bottom: 10px;
 }
 .big-button {
-    width: 480px;
+    width: 380px;
     height: 110px;
     border-radius: 16px;
     padding: 10px;
@@ -58,6 +58,7 @@ st.markdown("""
     margin-bottom: -15px;
 }
 .jalan { background-color: #ffe082; border-color: #ffca28; }
+.jaling { background-color: #ffe082; border-color: #ffca28; }
 .air   { background-color: #80d8ff; border-color: #29b6f6; }
 .sampah { background-color: #c8e6c9; border-color: #81c784; }
 .active {
@@ -104,6 +105,10 @@ button_html = """
     <a href="?event=jalan" class="big-button jalan">
         <span class="icon">🛣️</span>
         <span>Dashboard Jalan Desa</span>
+    </a>
+    <a href="?event=jaling" class="big-button jaling">
+        <span class="icon">🛣️</span>
+        <span>Dashboard Jalan Lingkungan</span>
     </a>
     <a href="?event=air" class="big-button air">
         <span class="icon">🚰</span>
