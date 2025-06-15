@@ -27,53 +27,60 @@ def dashboard_air_bersih():
 
     st.title("🚰 Dashboard Air Bersih Desa")
 
-    if "show_data" not in st.session_state:
-        st.session_state["show_data"] = False
+    # Inisialisasi state tombol
+    if "filtered_df" not in st.session_state:
+        st.session_state["filtered_df"] = None
 
-    with st.form("filter_form"):
-        col1, col2, col3 = st.columns(3)
+    st.markdown("### 🔍 Filter Data")
+    col1, col2, col3, col4, col5, col6 = st.columns(6)
 
+    with col1:
         kabupaten_options = ["Semua"] + sorted(df_raw["KABUPATEN"].dropna().unique())
-        kabupaten = col1.selectbox("📍 Kabupaten", kabupaten_options)
+        selected_kab = st.selectbox("📍 Kabupaten", kabupaten_options)
 
-        if kabupaten != "Semua":
-            kecamatan_options = ["Semua"] + sorted(df_raw[df_raw["KABUPATEN"] == kabupaten]["KECAMATAN"].dropna().unique())
-        else:
-            kecamatan_options = ["Semua"] + sorted(df_raw["KECAMATAN"].dropna().unique())
-        kecamatan = col2.selectbox("🏙️ Kecamatan", kecamatan_options)
+    with col2:
+        kec_options = df_raw[df_raw["KABUPATEN"] == selected_kab]["KECAMATAN"].dropna().unique() if selected_kab != "Semua" else df_raw["KECAMATAN"].dropna().unique()
+        selected_kec = st.selectbox("🏙️ Kecamatan", ["Semua"] + sorted(kec_options))
 
-        if kecamatan != "Semua":
-            desa_options = ["Semua"] + sorted(df_raw[df_raw["KECAMATAN"] == kecamatan]["DESA"].dropna().unique())
-        else:
-            desa_options = ["Semua"] + sorted(df_raw["DESA"].dropna().unique())
-        desa = col3.selectbox("🏘️ Desa", desa_options)
+    with col3:
+        desa_options = df_raw[df_raw["KECAMATAN"] == selected_kec]["DESA"].dropna().unique() if selected_kec != "Semua" else df_raw["DESA"].dropna().unique()
+        selected_desa = st.selectbox("🏘️ Desa", ["Semua"] + sorted(desa_options))
 
-        col4, col5, col6 = st.columns(3)
-        sumber = col4.selectbox("💧 Sumber Air", ["Semua"] + sorted(df_raw["SUMBER AIR BERSIH"].dropna().unique()))
-        kepemilikan = col5.selectbox("🏠 Status Kepemilikan", ["Semua"] + sorted(df_raw["STATUS KEPEMILIKAN SARANA PRASARANA AIR BERSIH"].dropna().unique()))
-        kondisi = col6.selectbox("⚙️ Kondisi Sarana", ["Semua", "BAIK", "RUSAK RINGAN", "RUSAK SEDANG", "RUSAK BERAT"])
-        
-        submit = st.form_submit_button("Tampilkan Data")
+    with col4:
+        sumber_opsi = ["Semua"] + sorted(df_raw["SUMBER AIR BERSIH"].dropna().unique())
+        selected_sumber = st.selectbox("💧 Sumber Air", sumber_opsi)
 
-    if submit:
-        st.session_state["show_data"] = True
+    with col5:
+        kepemilikan_opsi = ["Semua"] + sorted(df_raw["STATUS KEPEMILIKAN SARANA PRASARANA AIR BERSIH"].dropna().unique())
+        selected_kepemilikan = st.selectbox("🏠 Status Kepemilikan", kepemilikan_opsi)
 
+    with col6:
+        kondisi_opsi = ["Semua", "BAIK", "RUSAK RINGAN", "RUSAK SEDANG", "RUSAK BERAT"]
+        selected_kondisi = st.selectbox("⚙️ Kondisi Sarana", kondisi_opsi)
 
-    if st.session_state["show_data"]:
-        df = df_raw.copy()
+    # Fungsi filter
+    def apply_filter(df):
+        if selected_kab != "Semua":
+            df = df[df["KABUPATEN"] == selected_kab]
+        if selected_kec != "Semua":
+            df = df[df["KECAMATAN"] == selected_kec]
+        if selected_desa != "Semua":
+            df = df[df["DESA"] == selected_desa]
+        if selected_sumber != "Semua":
+            df = df[df["SUMBER AIR BERSIH"] == selected_sumber]
+        if selected_kepemilikan != "Semua":
+            df = df[df["STATUS KEPEMILIKAN SARANA PRASARANA AIR BERSIH"] == selected_kepemilikan]
+        if selected_kondisi != "Semua":
+            df = df[df["KONDISI SARANA"] == selected_kondisi]
+        return df
 
-        if kabupaten != "Semua":
-            df = df[df["KABUPATEN"] == kabupaten]
-        if kecamatan != "Semua":
-            df = df[df["KECAMATAN"] == kecamatan]
-        if desa != "Semua":
-            df = df[df["DESA"] == desa]
-        if sumber != "Semua":
-            df = df[df["SUMBER AIR BERSIH"] == sumber]
-        if kepemilikan != "Semua":
-            df = df[df["STATUS KEPEMILIKAN SARANA PRASARANA AIR BERSIH"] == kepemilikan]
-        if kondisi != "Semua":
-            df = df[df["KONDISI SARANA"] == kondisi]
+    # Tombol untuk memicu filter
+    if st.button("Tampilkan Data"):
+        st.session_state["filtered_df"] = apply_filter(df_raw)
+
+    # Menampilkan data jika sudah difilter
+    if st.session_state["filtered_df"] is not None:
+        df = st.session_state["filtered_df"]
 
         tab1, tab2, tab3, tab4 = st.tabs(["📋 Ringkasan", "📊 Grafik", "🗺️ Peta", "📄 Data Mentah"])
 
