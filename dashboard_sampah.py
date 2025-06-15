@@ -12,42 +12,52 @@ def dashboard_sampah():
 
     df_raw = load_data()
 
-    st.title("\U0001F4CA Dashboard Pengelolaan Sampah Desa")
+    
+    st.title("♻️ Dashboard Pengelolaan Sampah Desa")
 
-    with st.form("filter_form"):
-        col1, col2, col3, col4 = st.columns(4)
+    # Inisialisasi state tombol
+    if "filtered_df" not in st.session_state:
+        st.session_state["filtered_df"] = None
 
+    st.markdown("### 🔍 Filter Data")
+    col1, col2, col3, col4 = st.columns(4)
+
+    with col1:
         kabupaten_options = ["Semua"] + sorted(df_raw["KABUPATEN"].dropna().unique())
-        kabupaten = col1.selectbox("Pilih Kabupaten", kabupaten_options)
+        selected_kab = st.selectbox("📍 Kabupaten", kabupaten_options)
 
-        if kabupaten != "Semua":
-            kecamatan_options = ["Semua"] + sorted(df_raw[df_raw["KABUPATEN"] == kabupaten]["KECAMATAN"].dropna().unique())
-        else:
-            kecamatan_options = ["Semua"] + sorted(df_raw["KECAMATAN"].dropna().unique())
-        kecamatan = col2.selectbox("Pilih Kecamatan", kecamatan_options)
+    with col2:
+        kec_options = df_raw[df_raw["KABUPATEN"] == selected_kab]["KECAMATAN"].dropna().unique() if selected_kab != "Semua" else df_raw["KECAMATAN"].dropna().unique()
+        selected_kec = st.selectbox("🏙️ Kecamatan", ["Semua"] + sorted(kec_options))
 
-        if kecamatan != "Semua":
-            desa_options = ["Semua"] + sorted(df_raw[df_raw["KECAMATAN"] == kecamatan]["DESA"].dropna().unique())
-        else:
-            desa_options = ["Semua"] + sorted(df_raw["DESA"].dropna().unique())
-        desa = col3.selectbox("Pilih Desa", desa_options)
+    with col3:
+        desa_options = df_raw[df_raw["KECAMATAN"] == selected_kec]["DESA"].dropna().unique() if selected_kec != "Semua" else df_raw["DESA"].dropna().unique()
+        selected_desa = st.selectbox("🏘️ Desa", ["Semua"] + sorted(desa_options))
 
+    with col4:
         sistem_options = ["Semua"] + sorted(df_raw["Sistem Pengolahan Sampah"].dropna().unique())
-        sistem = col4.selectbox("Sistem Pengolahan Sampah", sistem_options)
+        sistem = st.selectbox("Sistem Pengolahan Sampah", sistem_options)
 
-        submit = st.form_submit_button("Tampilkan Data")
-
-    if submit:
-        df = df_raw.copy()
-        if kabupaten != "Semua":
-            df = df[df["KABUPATEN"] == kabupaten]
-        if kecamatan != "Semua":
-            df = df[df["KECAMATAN"] == kecamatan]
-        if desa != "Semua":
-            df = df[df["DESA"] == desa]
+    # Fungsi filter
+    def apply_filter(df):
+        if selected_kab != "Semua":
+            df = df[df["KABUPATEN"] == selected_kab]
+        if selected_kec != "Semua":
+            df = df[df["KECAMATAN"] == selected_kec]
+        if selected_desa != "Semua":
+            df = df[df["DESA"] == selected_desa]
         if sistem != "Semua":
             df = df[df["Sistem Pengolahan Sampah"] == sistem]
+        
+        return df
 
+    # Tombol untuk memicu filter
+    if st.button("Tampilkan Data"):
+        st.session_state["filtered_df"] = apply_filter(df_raw)
+
+    # Menampilkan data jika sudah difilter
+    if st.session_state["filtered_df"] is not None:
+        df = st.session_state["filtered_df"]
         tab1, tab2, tab3 = st.tabs(["\U0001F4CC Ringkasan", "\U0001F4C8 Grafik", "\U0001F4C4 Data Mentah"])
 
         with tab1:
