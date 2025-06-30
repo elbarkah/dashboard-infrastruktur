@@ -2,6 +2,7 @@ def dashboard_sampah():
     import streamlit as st
     import pandas as pd
     import plotly.express as px
+    import io
 
     @st.cache_data
 
@@ -12,8 +13,8 @@ def dashboard_sampah():
 
     df_raw = load_data()
 
-    
-    st.title("♻️ Dashboard Pengelolaan Sampah Desa")
+    st.title("🗑️ Dashboard Pengelolaan Sampah Desa")
+    st.markdown("Analisis visual interaktif Pengelolaan sampah di Desa")
 
     # Inisialisasi state tombol
     if "filtered_df" not in st.session_state:
@@ -61,9 +62,7 @@ def dashboard_sampah():
         tab1, tab2, tab3 = st.tabs(["\U0001F4CC Ringkasan", "\U0001F4C8 Grafik", "\U0001F4C4 Data Mentah"])
 
         with tab1:
-            st.subheader("\U0001F4CC Ringkasan per Kabupaten")
-
-            st.markdown("### Sistem Pengelolaan Sampah di Desa")
+            st.markdown("### Sistem Pengelolaan Sampah")
             sistem_col = "Sistem Pengolahan Sampah"
             count_df = df.groupby("KABUPATEN")[sistem_col].value_counts().unstack(fill_value=0)
             count_df["Belum Terdata"] = df.groupby("KABUPATEN")[sistem_col].apply(lambda x: (x == "Belum terdata").sum())
@@ -81,8 +80,6 @@ def dashboard_sampah():
             count_df = count_df[available_cols]
 
             count_df.loc["Total"] = count_df.sum()
-
-            st.markdown("#### Rekap Jumlah Keseluruhan")
             total_box = count_df.loc["Total"]
             col_a, col_b, col_c, col_d, col_e = st.columns(5)
             expected_labels = {
@@ -95,10 +92,39 @@ def dashboard_sampah():
             columns = st.columns(len(expected_labels))
             for i, (col_name, label) in enumerate(expected_labels.items()):
                 if col_name in total_box:
-                    columns[i].metric(label, total_box[col_name])
-
+                    value = int(total_box[col_name])
+                    html_box = f"""
+                    <div style='
+                        padding:5px;
+                        border-radius:8px;
+                        background:#00ff0080;
+                        text-align:center;
+                        font-size:24px;
+                        transition: all 0.3s ease;
+                        box-shadow: 1px 1px 3px rgba(0,0,0,0.1);
+                        cursor: default;' 
+                        onmouseover="this.style.boxShadow='2px 4px 10px rgba(0,0,0,0.3)'" 
+                        onmouseout="this.style.boxShadow='1px 1px 3px rgba(0,0,0,0.1)'">
+                        <div style='font-weight:600;'>{label}</div>
+                        <div style='font-size:30px; font-weight:bold'>{value}</div>
+                    </div>
+                    """
+                    columns[i].markdown(html_box, unsafe_allow_html=True)
+            st.markdown("<div style='margin-top: -30px;'></div>", unsafe_allow_html=True)
 
             st.dataframe(count_df)
+
+            excel_buffer = io.BytesIO()
+            with pd.ExcelWriter(excel_buffer, engine="xlsxwriter") as writer:
+                count_df.drop(index="Total", errors="ignore").to_excel(writer, sheet_name="Ringkasan Sistem", index=True)
+            excel_buffer.seek(0)
+
+            st.download_button(
+                label="📥 Unduh Ringkasan Sistem Pengelolaan Sampah",
+                data=excel_buffer,
+                file_name="ringkasan_sistem_pengelolaan.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
 
             st.markdown("### TPS3R dan Bisnis Persampahan")
             bisnis_col = "Bisnis dalam bidang persampahan (sebagai contoh: Bank Sampah, Tabungan sampah)"
@@ -107,25 +133,58 @@ def dashboard_sampah():
                 bisnis_summary = bisnis_df.groupby("KABUPATEN")[bisnis_col].value_counts().unstack(fill_value=0)
                 if not bisnis_summary.empty:
                     bisnis_summary.loc["Total"] = bisnis_summary.sum()
+                    labels_bisnis = {
+                        "Ada dan aktif": "Ada dan Aktif",
+                        "Ada, namun tidak aktif": "Tidak Aktif",
+                        "Ada dan aktif, Sedang dalam penyusunan rencana bisnis": "Aktif + Rencana",
+                        "Ada, namun tidak aktif, Sedang dalam penyusunan rencana bisnis": "Tidak Aktif + Rencana",
+                        "Sedang dalam penyusunan rencana bisnis": "Rencana Bisnis"
+                    }
 
-                    st.markdown("#### Rekap Keseluruhan")
-                    col1, col2, col3, col4, col5 = st.columns(5)
-                    if "Ada dan aktif" in bisnis_summary.columns:
-                        col1.metric("Ada dan Aktif", bisnis_summary.loc["Total", "Ada dan aktif"])
-                    if "Ada, namun tidak aktif" in bisnis_summary.columns:
-                        col2.metric("Tidak Aktif", bisnis_summary.loc["Total", "Ada, namun tidak aktif"])
-                    if "Ada dan aktif, Sedang dalam penyusunan rencana bisnis" in bisnis_summary.columns:
-                        col3.metric("Aktif + Rencana", bisnis_summary.loc["Total", "Ada dan aktif, Sedang dalam penyusunan rencana bisnis"])
-                    if "Ada, namun tidak aktif, Sedang dalam penyusunan rencana bisnis" in bisnis_summary.columns:
-                        col4.metric("Tidak Aktif + Rencana", bisnis_summary.loc["Total", "Ada, namun tidak aktif, Sedang dalam penyusunan rencana bisnis"])
-                    if "Sedang dalam penyusunan rencana bisnis" in bisnis_summary.columns:
-                        col5.metric("Rencana Bisnis", bisnis_summary.loc["Total", "Sedang dalam penyusunan rencana bisnis"])
+                    cols_bisnis = st.columns(len(labels_bisnis))
+                    for i, (col_name, label) in enumerate(labels_bisnis.items()):
+                        if col_name in bisnis_summary.columns:
+                            value = int(bisnis_summary.loc["Total", col_name])
+                            html_box = f"""
+                            <div style='
+                                padding:10px;
+                                border-radius:8px;
+                                background:#00ff0080;
+                                text-align:center;
+                                font-size:24px;
+                                transition: all 0.3s ease;
+                                box-shadow: 1px 1px 3px rgba(0,0,0,0.1);
+                                cursor: default;' 
+                                onmouseover="this.style.boxShadow='2px 4px 10px rgba(0,0,0,0.3)'" 
+                                onmouseout="this.style.boxShadow='1px 1px 3px rgba(0,0,0,0.1)'">
+                                <div style='font-weight:600;'>{label}</div>
+                                <div style='font-size:30px; font-weight:bold'>{value}</div>
+                            </div>
+                            """
+                            cols_bisnis[i].markdown(html_box, unsafe_allow_html=True)
 
+                    # Tambahkan jarak minimum ke tabel agar tidak terlalu jauh
+                    st.markdown("<div style='margin-top: -30px;'></div>", unsafe_allow_html=True)
+
+                    # Tabel
                     st.dataframe(bisnis_summary)
+
+                    excel_buffer = io.BytesIO()
+                    with pd.ExcelWriter(excel_buffer, engine="xlsxwriter") as writer:
+                        bisnis_summary.drop(index="Total", errors="ignore").to_excel(writer, sheet_name="TPS3R dan Bisnis", index=True)
+                    excel_buffer.seek(0)
+
+                    st.download_button(
+                        label="📥 Unduh Ringkasan TPS3R dan Bisnis",
+                        data=excel_buffer,
+                        file_name="ringkasan_TPS3R_bisnis.xlsx",
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                    )
                 else:
                     st.info("Tidak ada data bisnis persampahan untuk TPS3R di hasil filter ini.")
             else:
                 st.info("Tidak ada data TPS3R dalam hasil filter ini.")
+
 
 
             st.markdown("### Pendapatan Asli Desa dan BUMDES")
@@ -138,20 +197,65 @@ def dashboard_sampah():
                 if not pad_df.empty and not bumdes_df.empty:
                     pad_df.loc["Total"] = pad_df.sum()
                     bumdes_df.loc["Total"] = bumdes_df.sum()
+                    labels_pad_bumdes = {
+                        "PAD_Ya": "PAD - Ya",
+                        "PAD_Tidak": "PAD - Tidak",
+                        "BUMDes_Ya": "BUMDes - Ya",
+                        "BUMDes_Tidak": "BUMDes - Tidak"
+                    }
 
-                    st.markdown("#### Rekap Keseluruhan")
-                    col1, col2, col3, col4 = st.columns(4)
-                    if "Ya" in pad_df.columns:
-                        col1.metric("PAD - Ya", pad_df.loc["Total", "Ya"])
-                    if "Tidak" in pad_df.columns:
-                        col2.metric("PAD - Tidak", pad_df.loc["Total", "Tidak"])
-                    if "Ya" in bumdes_df.columns:
-                        col3.metric("BUMDes - Ya", bumdes_df.loc["Total", "Ya"])
-                    if "Tidak" in bumdes_df.columns:
-                        col4.metric("BUMDes - Tidak", bumdes_df.loc["Total", "Tidak"])
+                    cols_pb = st.columns(len(labels_pad_bumdes))
 
+                    for i, (key, label) in enumerate(labels_pad_bumdes.items()):
+                        if key == "PAD_Ya" and "Ya" in pad_df.columns:
+                            value = int(pad_df.loc["Total", "Ya"])
+                        elif key == "PAD_Tidak" and "Tidak" in pad_df.columns:
+                            value = int(pad_df.loc["Total", "Tidak"])
+                        elif key == "BUMDes_Ya" and "Ya" in bumdes_df.columns:
+                            value = int(bumdes_df.loc["Total", "Ya"])
+                        elif key == "BUMDes_Tidak" and "Tidak" in bumdes_df.columns:
+                            value = int(bumdes_df.loc["Total", "Tidak"])
+                        else:
+                            continue
+
+                        html_box = f"""
+                        <div style='
+                            padding:10px;
+                            border-radius:8px;
+                            background:#00ff0080;
+                            text-align:center;
+                            font-size:24px;
+                            transition: all 0.3s ease;
+                            box-shadow: 1px 1px 3px rgba(0,0,0,0.1);
+                            cursor: default;'
+                            onmouseover="this.style.boxShadow='2px 4px 10px rgba(0,0,0,0.3)'"
+                            onmouseout="this.style.boxShadow='1px 1px 3px rgba(0,0,0,0.1)'">
+                            <div style='font-weight:600;'>{label}</div>
+                            <div style='font-size:30px; font-weight:bold'>{value}</div>
+                        </div>
+                        """
+                        cols_pb[i].markdown(html_box, unsafe_allow_html=True)
+
+                    # Jarak antar box dan tabel
+                    st.markdown("<div style='margin-top: -30px;'></div>", unsafe_allow_html=True)
+
+                    # Gabungan PAD dan BUMDes
                     pad_bumdes_df = pad_df.merge(bumdes_df, left_index=True, right_index=True, suffixes=(" PAD", " BUMDes"))
                     st.dataframe(pad_bumdes_df)
+
+
+                    excel_buffer = io.BytesIO()
+                    with pd.ExcelWriter(excel_buffer, engine="xlsxwriter") as writer:
+                        pad_bumdes_df.drop(index="Total", errors="ignore").to_excel(writer, sheet_name="PADes dan BUMDES", index=True)
+                    excel_buffer.seek(0)
+
+                    st.download_button(
+                        label="📥 Unduh Ringkasan PAD dan Bumdes",
+                        data=excel_buffer,
+                        file_name="ringkasan_PAD_Bumdes.xlsx",
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                    )
+
                 else:
                     st.info("Tidak ada data PAD atau BUMDes pada hasil filter ini.")
             else:
@@ -188,6 +292,18 @@ def dashboard_sampah():
         with tab3:
             st.subheader("\U0001F4C4 Data Mentah")
             st.dataframe(df)
+            # Tombol Download Excel
+            to_excel = io.BytesIO()
+            with pd.ExcelWriter(to_excel, engine="xlsxwriter") as writer:
+                df.to_excel(writer, index=False, sheet_name="Data Mentah")
+            to_excel.seek(0)
+
+            st.download_button(
+                label="📥 Unduh Data dalam format Excel",
+                data=to_excel,
+                file_name="data_sampah_filtered.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
 
     else:
         st.info("Silakan pilih filter dan tekan tombol **Tampilkan Data** untuk melihat hasil.")
