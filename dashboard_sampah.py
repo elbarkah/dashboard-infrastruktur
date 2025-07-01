@@ -55,6 +55,8 @@ def dashboard_sampah():
     # Tombol untuk memicu filter
     if st.button("Tampilkan Data"):
         st.session_state["filtered_df"] = apply_filter(df_raw)
+    
+    st.markdown("<hr style='border: none; border-top: 3px double #1976d2; margin: 0px 0;'/>", unsafe_allow_html=True)
 
     # Menampilkan data jika sudah difilter
     if st.session_state["filtered_df"] is not None:
@@ -306,4 +308,4 @@ def dashboard_sampah():
             )
 
     else:
-        st.info("Silakan pilih filter dan tekan tombol **Tampilkan Data** untuk melihat hasil.")
+        st.info("Silakan pilih filter dan tekan tombol **Tampilkan Data** untuk melihat hasil")
