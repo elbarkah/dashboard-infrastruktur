@@ -11,47 +11,7 @@ def dashboard_kantor():
         df = pd.read_excel("DATA KANTOR DESA.xlsx")
         df.columns = df.columns.str.strip()
         return df
-
-    @st.cache_data
-    def apply_filter_cached(
-        df,
-        selected_kab,
-        selected_kec,
-        selected_desa,
-        selected_status_tanah,
-        selected_surat_tanah,
-        selected_rehab,
-        selected_kondisi,
-        selected_balai
-    ):
-        df = df.copy()
-
-        if selected_kab != "Semua":
-            df = df[df["KABUPATEN"].astype(str) == selected_kab]
-
-        if selected_kec != "Semua":
-            df = df[df["KECAMATAN"].astype(str) == selected_kec]
-
-        if selected_desa != "Semua":
-            df = df[df["DESA"].astype(str) == selected_desa]
-
-        if selected_status_tanah != "Semua":
-            df = df[df["STATUS TANAH KANTOR DESA"].astype(str) == selected_status_tanah]
-
-        if selected_surat_tanah != "Semua":
-            df = df[df["SURAT TANAH DAN BANGUNAN"].astype(str) == selected_surat_tanah]
-
-        if selected_rehab != "Semua":
-            df = df[df["REHAB KANTOR DESA DARI BANPROV"].astype(str) == selected_rehab]
-
-        if selected_kondisi != "Semua":
-            df = df[df["KONDISI KANTOR DESA"].astype(str) == selected_kondisi]
-
-        if selected_balai != "Semua":
-            df = df[df["BALAI DESA"].astype(str) == selected_balai]
-
-        return df
-
+    
     @st.cache_data
     def render_peta(map_df):
         m = folium.Map(location=[map_df["LAT"].mean(), map_df["LON"].mean()], zoom_start=10)
@@ -76,50 +36,70 @@ def dashboard_kantor():
         return m
 
     df_raw = load_data()
+
     st.title("🏢 Dashboard Kantor Desa")
     st.markdown("Analisis visual interaktif keberadaan dan kondisi kantor desa")
-
-    # ========== FILTER HORISONTAL ==========
+    
+    if "filtered_df" not in st.session_state:
+        st.session_state["filtered_df"] = None
+    
     st.markdown("🔎 Filter Data")
-    with st.form("filter_form"):
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            selected_kab = st.selectbox("📍 Kabupaten", ["Semua"] + sorted(df_raw["KABUPATEN"].dropna().unique()))
-        with col2:
-            selected_kec = st.selectbox("🏙️ Kecamatan", ["Semua"] + sorted(df_raw[df_raw["KABUPATEN"] == selected_kab]["KECAMATAN"].dropna().unique() if selected_kab != "Semua" else df_raw["KECAMATAN"].dropna().unique()))
-        with col3:
-            selected_desa = st.selectbox("🏘️ Desa", ["Semua"] + sorted(df_raw[df_raw["KECAMATAN"] == selected_kec]["DESA"].dropna().unique() if selected_kec != "Semua" else df_raw["DESA"].dropna().unique()))
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        kabupaten_options = ["Semua"] + sorted(df_raw["KABUPATEN"].dropna().unique())
+        selected_kab = st.selectbox("📍 Kabupaten", kabupaten_options)
+    with col2:
+        kec_options = df_raw[df_raw["KABUPATEN"] == selected_kab]["KECAMATAN"].dropna().unique() if selected_kab != "Semua" else df_raw["KECAMATAN"].dropna().unique()
+        selected_kec = st.selectbox("🏙️ Kecamatan", ["Semua"] + sorted(kec_options))
+    with col3:
+        desa_options = df_raw[df_raw["KECAMATAN"] == selected_kec]["DESA"].dropna().unique() if selected_kec != "Semua" else df_raw["DESA"].dropna().unique()
+        selected_desa = st.selectbox("🏘️ Desa", ["Semua"] + sorted(desa_options))
 
-        col4, col5, col6 = st.columns(3)
-        with col4:
-            selected_status_tanah = st.selectbox("📄 Status Tanah", ["Semua"] + sorted(df_raw["STATUS TANAH KANTOR DESA"].dropna().unique()))
-        with col5:
-            selected_surat_tanah = st.selectbox("🧾 Surat Tanah", ["Semua"] + sorted(df_raw["SURAT TANAH DAN BANGUNAN"].dropna().unique()))
-        with col6:
-            selected_rehab = st.selectbox("🏗️ Rehab Banprov", ["Semua"] + sorted(df_raw["REHAB KANTOR DESA DARI BANPROV"].dropna().astype(str).unique()))
+    col4, col5, col6 = st.columns(3)
+    with col4:
+        selected_status_tanah = st.selectbox("📄 Status Tanah", ["Semua"] + sorted(df_raw["STATUS TANAH KANTOR DESA"].dropna().unique()))
+    with col5:
+        selected_surat_tanah = st.selectbox("🧾 Surat Tanah", ["Semua"] + sorted(df_raw["SURAT TANAH DAN BANGUNAN"].dropna().unique()))
+    with col6:
+        selected_rehab = st.selectbox("🏗️ Rehab Banprov", ["Semua"] + sorted(df_raw["REHAB KANTOR DESA DARI BANPROV"].dropna().astype(str).unique()))
 
-        col7, col8 = st.columns(2)
-        with col7:
-            selected_kondisi = st.selectbox("🏚️ Kondisi Kantor", ["Semua"] + sorted(df_raw["KONDISI KANTOR DESA"].dropna().unique()))
-        with col8:
-            selected_balai = st.selectbox("🏛️ Balai Desa", ["Semua"] + sorted(df_raw["BALAI DESA"].dropna().unique()))
+    col7, col8 = st.columns(2)
+    with col7:
+        selected_kondisi = st.selectbox("🏚️ Kondisi Kantor", ["Semua"] + sorted(df_raw["KONDISI KANTOR DESA"].dropna().unique()))
+    with col8:
+        selected_balai = st.selectbox("🏛️ Balai Desa", ["Semua"] + sorted(df_raw["BALAI DESA"].dropna().unique()))
 
-        tampilkan = st.form_submit_button("Tampilkan Data")
+    def apply_filter_cached(df):
+        if selected_kab != "Semua":
+            df = df[df["KABUPATEN"] == selected_kab]
 
-    if tampilkan:
-        st.session_state["filtered_df"] = apply_filter_cached(
-            df_raw,
-            selected_kab,
-            selected_kec,
-            selected_desa,
-            selected_status_tanah,
-            selected_surat_tanah,
-            selected_rehab,
-            selected_kondisi,
-            selected_balai
-        )
+        if selected_kec != "Semua":
+            df = df[df["KECAMATAN"] == selected_kec]
 
-    if "filtered_df" in st.session_state:
+        if selected_desa != "Semua":
+            df = df[df["DESA"] == selected_desa]
+
+        if selected_status_tanah != "Semua":
+            df = df[df["STATUS TANAH KANTOR DESA"] == selected_status_tanah]
+
+        if selected_surat_tanah != "Semua":
+            df = df[df["SURAT TANAH DAN BANGUNAN"] == selected_surat_tanah]
+
+        if selected_rehab != "Semua":
+            df = df[df["REHAB KANTOR DESA DARI BANPROV"] == selected_rehab]
+
+        if selected_kondisi != "Semua":
+            df = df[df["KONDISI KANTOR DESA"] == selected_kondisi]
+
+        if selected_balai != "Semua":
+            df = df[df["BALAI DESA"] == selected_balai]
+
+        return df
+
+    if st.button("Tampilkan Data"):
+        st.session_state["filtered_df"] = apply_filter_cached(df_raw)
+
+    if st.session_state["filtered_df"] is not None:
         df = st.session_state["filtered_df"]
         tab1, tab2, tab3, tab4 = st.tabs(["📋 Ringkasan", "📊 Grafik", "🗺️ Peta", "📄 Data Mentah"])
 
