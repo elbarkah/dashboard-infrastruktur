@@ -99,6 +99,8 @@ def dashboard_kantor():
     if st.button("Tampilkan Data"):
         st.session_state["filtered_df"] = apply_filter_cached(df_raw)
 
+    st.markdown("<hr style='border: none; border-top: 3px double #1976d2; margin: 0px 0;'/>", unsafe_allow_html=True)
+
     if st.session_state["filtered_df"] is not None:
         df = st.session_state["filtered_df"]
         tab1, tab2, tab3, tab4 = st.tabs(["📋 Ringkasan", "📊 Grafik", "🗺️ Peta", "📄 Data Mentah"])
@@ -402,4 +404,4 @@ def dashboard_kantor():
             )
 
     else:
-        st.info("Silakan atur filter dan tekan tombol **Tampilkan Data** untuk mulai.")
+        st.info("Silakan pilih filter dan tekan tombol **Tampilkan Data** untuk melihat hasil")
