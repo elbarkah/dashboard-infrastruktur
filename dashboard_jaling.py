@@ -85,6 +85,8 @@ def dashboard_jalan_lingkungan():
 
     if st.button("Tampilkan Data"):
         st.session_state['filtered_df'] = apply_filter(df)
+    
+    st.markdown("<hr style='border: none; border-top: 3px double #1976d2; margin: 0px 0;'/>", unsafe_allow_html=True)
 
     if "filtered_df" in st.session_state:
         filtered_df = st.session_state['filtered_df']
@@ -383,3 +385,5 @@ def dashboard_jalan_lingkungan():
                 file_name="data_mentah_jalan_desa.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
+    else:
+        st.info("Silakan pilih filter dan tekan tombol **Tampilkan Data** untuk melihat hasil")
