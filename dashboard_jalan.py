@@ -17,25 +17,35 @@ def dashboard_jalan():
         st.stop()
 
     # ===================== RENDER PETA =====================
-    def render_peta(df_map):
+    @st.cache_data
+    def build_map(df_map):
         map_df = df_map.dropna(subset=['LAT AWAL', 'LNG AWAL', 'LAT AKHIR', 'LNG AKHIR'])
-        if not map_df.empty:
-            m = folium.Map(location=[map_df['LAT AWAL'].mean(), map_df['LNG AWAL'].mean()], zoom_start=10)
-            for _, row in map_df.iterrows():
-                directions = f"https://www.google.com/maps/dir/{row['LAT AWAL']},{row['LNG AWAL']}/{row['LAT AKHIR']},{row['LNG AKHIR']}"
-                folium.PolyLine([(row['LAT AWAL'], row['LNG AWAL']), (row['LAT AKHIR'], row['LNG AKHIR'])], color="red",
-                    popup=folium.Popup(f"""
-                        <b>Desa:</b> {row.get('DESA', '')}<br>
-                        <b>Ruas:</b> {row.get('NAMA RUAS JALAN DESA', '')}<br>
-                        <b>Perkerasan:</b> {row.get('JENIS PERKERASAN', '')}<br>
-                        <b>Panjang:</b> {row.get('TOTAL PANJANG JALAN (meter)', '')} m<br>
-                        <a href="{directions}" target="_blank">🛣️ Lihat Rute di Google Maps</a>
-                    """, max_width=250)
-                ).add_to(m)
+        if map_df.empty:
+            return None
+
+        m = folium.Map(location=[map_df['LAT AWAL'].mean(), map_df['LNG AWAL'].mean()], zoom_start=10)
+        for _, row in map_df.iterrows():
+            directions = f"https://www.google.com/maps/dir/{row['LAT AWAL']},{row['LNG AWAL']}/{row['LAT AKHIR']},{row['LNG AKHIR']}"
+            folium.PolyLine(
+                [(row['LAT AWAL'], row['LNG AWAL']), (row['LAT AKHIR'], row['LNG AKHIR'])],
+                color="red",
+                popup=folium.Popup(f"""
+                    <b>Wilayah:</b> {row['KABUPATEN']}-{row['KECAMATAN']}-{row['DESA']}<br>
+                    <b>Ruas:</b> {row.get('NAMA RUAS JALAN DESA', '')}<br>
+                    <b>Perkerasan:</b> {row.get('JENIS PERKERASAN', '')}<br>
+                    <b>Panjang:</b> {row.get('TOTAL PANJANG JALAN DESA (meter)', '')} m<br>
+                    <a href="{directions}" target="_blank">🛣️ Lihat Rute di Google Maps</a>
+                """, max_width=550)
+            ).add_to(m)
+
+        return m
+    def render_peta(df_map):
+        m = build_map(df_map)
+        if m is not None:
             st_folium(m, use_container_width=True)
         else:
             st.info("Tidak ada data koordinat untuk ditampilkan.")
-
+    
     # ===================== FILTER UI =====================
     st.title("🛣️ Dashboard Kondisi Jalan Desa - Provinsi Jawa Barat")
     st.markdown("Analisis visual interaktif kondisi jalan desa.")
@@ -81,6 +91,8 @@ def dashboard_jalan():
 
     if st.button("Tampilkan Data"):
         st.session_state['filtered_df'] = apply_filter(df)
+    
+    st.markdown("<hr style='border: none; border-top: 3px double #1976d2; margin: 0px 0;'/>", unsafe_allow_html=True)
 
     if "filtered_df" in st.session_state:
         filtered_df = st.session_state['filtered_df']
@@ -379,5 +391,5 @@ def dashboard_jalan():
                 file_name="data_mentah_jalan_desa.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
-
-
+    else:
+        st.info("Silakan pilih filter dan tekan tombol **Tampilkan Data** untuk melihat hasil")
