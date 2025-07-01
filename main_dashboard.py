@@ -78,7 +78,6 @@ st.markdown("""
 }
 .back-button {
     display: inline-block;
-    margin-top: 20px;
     padding: 12px 24px;
     font-size: 16px;
     background-color: #eeeeee;
@@ -160,5 +159,5 @@ elif selected is None:
 
 # ===== TOMBOL KEMBALI KE MENU UTAMA =====
 if selected:
-    st.markdown("<hr style='border: none; border-top: 3px double #1976d2; margin: 15px 0;'/>", unsafe_allow_html=True)
+    st.markdown("<hr style='border: none; border-top: 3px double #1976d2; margin: 0px 0;'/>", unsafe_allow_html=True)
     st.markdown('<a href="/" class="back-button">🔁 Kembali ke Menu Utama</a>', unsafe_allow_html=True)
