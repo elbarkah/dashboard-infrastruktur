@@ -26,6 +26,7 @@ def dashboard_air_bersih():
     df_raw = load_data()
 
     st.title("🚰 Dashboard Air Bersih Desa")
+    st.markdown("Analisis visual interaktif Sarana Prasarana Air Bersih di Desa")
 
     # Inisialisasi state tombol
     if "filtered_df" not in st.session_state:
@@ -77,6 +78,8 @@ def dashboard_air_bersih():
     # Tombol untuk memicu filter
     if st.button("Tampilkan Data"):
         st.session_state["filtered_df"] = apply_filter(df_raw)
+    
+    st.markdown("<hr style='border: none; border-top: 3px double #1976d2; margin: 0px 0;'/>", unsafe_allow_html=True)
 
     # Menampilkan data jika sudah difilter
     if st.session_state["filtered_df"] is not None:
@@ -442,4 +445,4 @@ def dashboard_air_bersih():
             )
 
     else:
-        st.info("Silakan pilih filter dan tekan tombol **Tampilkan Data** untuk melihat hasil.")
+        st.info("Silakan pilih filter dan tekan tombol **Tampilkan Data** untuk melihat hasil")
